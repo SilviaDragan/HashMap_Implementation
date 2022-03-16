@@ -10,24 +10,23 @@
 struct hashData {
     char* key;
     void* value;
-    struct hashData* next;
+    // struct hashData* next;
 };
 
 struct hashTable {
-    // un fel de lista inlantuita de hashData
+    // array de hashData
     struct hashData** table;
     int capacity;
     int current_size;
 };
 
-// bare minimum
-hashTable* initTable();
+struct hashTable* initTable();
 void addItem(struct hashTable* t, char* key, void* newValue);
 void deleteItem(struct hashTable* t, char* key);
 void setValueForKey(struct hashTable* t, char* key, void* newValue);
 void* getValueByKey(struct hashTable* t, char* key);
 void freeTable(struct hashTable* t);
 void printHashTable(struct hashTable* t);
-
+unsigned long hashFunction(char* key);
 
 #endif
