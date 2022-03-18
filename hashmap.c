@@ -19,14 +19,17 @@ struct hashTable* initTable(){
         printf("error creating table contents");
         exit(-1);
     }
+
     return htable;
 }
 
 void printHashTable(struct hashTable* t) {
-    printf("table current size=%d\n", t->current_size);
+    // printf("table current size=%d\n", t->current_size);
 
-    for (int i = 0; i < t->current_size; ++i) {
-        printf("key:%s value:%s", t->table[i]->key, (char *)t->table[i]->value);
+    for (int i = 0; i < t->capacity; ++i) {
+        if (t->table[i] != NULL) {
+            printf("key:%s value:%s\n", t->table[i]->key, (char *)t->table[i]->value);
+        }
     }
     printf("\n");
   
@@ -37,7 +40,7 @@ unsigned long hashFunction(char* key) {
     unsigned int hashed_index = HASH_CONST;
     int c;
 
-    while (c = *key++) {
+    while ((c = *key++)) {
         hashed_index = hashed_index * HASH_MULTIPLIER + c;
     }
     return hashed_index;
@@ -46,26 +49,29 @@ unsigned long hashFunction(char* key) {
 // add item using linear probing when encountering a collision
 void addItem(struct hashTable* t, char* key, void* newValue) {
     unsigned long hash = hashFunction(key);
-    printf("add %s %s hash = %ld\n", key, (char *)newValue, hash);
+    unsigned long index = 0;
+    int i = 0;
+
+    // printf("add %s %s\n", key, (char *)newValue);
     while(1) {
-        printf("while\n");
-        if(!t->table[hash]) {
-            printf("nu exista element la indexul %ld\n", hash);
+        index = (hash+i) %  t->capacity;
+        // printf("i = %d\n", i);
+        if(!t->table[index]) {
+            // printf("nu exista element la indexul %ld\n", index);
             // insert value
-            struct hashData *hd = (struct hashData *) calloc(1, sizeof(struct hashData));
-            hd->key = key;
-            hd->value = newValue;
-            t->table[hash] = hd;
+            t->table[index] = (struct hashData *) calloc(1, sizeof(struct hashData));
+            t->table[index]->key = calloc(strlen(key), sizeof(char));
+            t->table[index]->value = calloc(strlen(newValue), sizeof(char));
+            memcpy(t->table[index]->key, key, strlen(key));
+            memcpy(t->table[index]->value, newValue, strlen(newValue));
+            // hd->key = key;
+            // hd->value = newValue;
             break;
         } 
         else {
-            printf("else\n");
-
-            if (hash < t->capacity) {
-                hash++;
-            }
-            else {
-                hash = 0;
+            // printf("else\n");
+            if (index < t->capacity) {
+                i++;
             }
         }
     }
@@ -76,28 +82,30 @@ void addItem(struct hashTable* t, char* key, void* newValue) {
     }
 }
 
+
+// nu merge :)
 void* getValueByKey(struct hashTable* t, char* key) {
+    printf("da\n");
     unsigned long hash = hashFunction(key);
+    unsigned long index = 0;
+    int i = 0;
+
     while(1) {
-        if(t->table[hash]) {
-            printf("la indexul %ld am cheia %s\n", hash, t->table[hash]->key);
-            if (strncmp(key, t->table[hash]->key, strlen(key)) == 0) {
-                return t->table[hash]->value;
+        index = (hash+i) %  t->capacity;
+        if(t->table[index]) {
+            // printf("la indexul %ld am cheia %s\n", index, t->table[index]->key);
+            if (strncmp(key, t->table[index]->key, strlen(key)) == 0) {
+                return t->table[index]->value;
             } else {
-                if (hash < t->capacity) {
-                    hash++;
-                }
-                else {
-                    hash = 0;
+                if (index < t->capacity) {
+                    i++;
                 }
             }
         } 
-        else {
-            if (hash < t->capacity) {
-                hash++;
-            }
-            else {
-                hash = 0;
+       else {
+            // printf("else\n");
+            if (index < t->capacity) {
+                i++;
             }
         }
     }
@@ -106,34 +114,40 @@ void* getValueByKey(struct hashTable* t, char* key) {
 
 void deleteItem(struct hashTable* t, char* key) {
     unsigned long hash = hashFunction(key);
+    unsigned long index = 0;
+    int i = 0;
+
     while(1) {
-        if(t->table[hash]) {
-            printf("la indexul %ld am cheia %s\n", hash, t->table[hash]->key);
-            if (strncmp(key, t->table[hash]->key, strlen(key)) == 0) {
-                t->table[hash] = NULL;
+        index = (hash+i) %  t->capacity;
+        if(t->table[index]) {
+            // printf("la indexul %ld am cheia %s\n", index, t->table[index]->key);
+            if (strncmp(key, t->table[index]->key, strlen(key)) == 0) {
+                free(t->table[index]->key);
+                free(t->table[index]->value);
+                free(t->table[index]);
+                t->table[index] = NULL;
+                return;
             } else {
-                if (hash < t->capacity) {
-                    hash++;
-                }
-                else {
-                    hash = 0;
+                if (index < t->capacity) {
+                    i++;
                 }
             }
         } 
-        else {
-            if (hash < t->capacity) {
-                hash++;
-            }
-            else {
-                hash = 0;
+       else {
+            // printf("else\n");
+            if (index < t->capacity) {
+                i++;
             }
         }
     }
+    t->current_size--;
 }
 
 void freeTable(struct hashTable* t) {
-    for (int i = 0; i < t->current_size; ++i) {
+    for (int i = 0; i < t->capacity; ++i) {
         if (t->table[i] != NULL) {
+            free(t->table[i]->key);
+            free(t->table[i]->value);
             free(t->table[i]);
         }
     }
