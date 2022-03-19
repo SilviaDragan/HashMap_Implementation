@@ -8,76 +8,102 @@
 #include "utils.h"
 #include "hashmap.h"
 
-int main(int argc, char **argv) {
-	// declar variabilele aici:
-	FILE *fsrc = NULL;
-	FILE *fdest = NULL;
-	int i = 0, k1, k2, directory = 1;
-	// schimba numele variabilelor astora 
-	char *filename_in = NULL, *filename_out = NULL;
+// delimitatoare: \t []{}<>=+-*/%!&|^.,:;()\.
 
-	struct hashTable* ht = initTable();
+void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTable* ht) {
+	char line[MAX_LINE_LEN];
+	printf("in functie\n");
 
-	char **fileDirectories = NULL;
-	fileDirectories = malloc(10 * sizeof(char *));
-	if(fileDirectories == NULL)
-		exit(1);
-	for(i = 0; i < 10; i++) {
-		fileDirectories[i] = NULL;
+	while(fgets(line, MAX_LINE_LEN, fsrc)) {
+		fprintf(fdest, "%s", line);
 	}
 
-	// parseaza argumentele
-	// foloseste while in loc de for
+}
+
+int main(int argc, char **argv) {
+	FILE *fsrc = NULL, *fdest = NULL;
+	// char *fin = NULL, *fout = NULL;
+	int i = 1, dir_no = 0;
+	int write_to_output = 0, read_from_input = 0, files_witout_flag = 0;
+	struct hashTable* ht = initTable();
+
+	char **dirs = (char **) calloc(MAX_DIRS_NO, sizeof(char *));
+	if(dirs == NULL) {
+		exit(12);
+	}
+
 	while (i < argc) {
-		if(strncmp("-D", argv[i], 2) == 0) {
-			printf("caz d\n");
-		}
-		else if(strncmp("-I", argv[i], 2) == 0) {
-			printf("caz i\n");
-			//adauga director
-			fileDirectories[directory]= malloc(
-				(strlen(argv[i+1]) + 1) * sizeof(char));
-			if(fileDirectories[directory] == NULL)
-				exit(1);
-			memcpy(fileDirectories[directory], argv[i+1], 
-				strlen(argv[i + 1]) + 1);
-			directory++;
-			i++;
+		if(strncmp("-", argv[i], 1) == 0) {
+			if(strncmp("-D", argv[i], 2) == 0) {
+				printf("caz d\n");
+			}
+			else if(strncmp("-I", argv[i], 2) == 0) {
+				printf("-i %s\n", argv[i+1]);
+				//adauga director
+				dirs[dir_no]= calloc((strlen(argv[i+1]) + 1), sizeof(char));
+				if(dirs[dir_no] == NULL) {
+					exit(12);
+				}
 
-		}
-		else if(strncmp("-o", argv[i], 2) == 0) {
-			printf("caz o\n");
+				// strcpy?
+				memcpy(dirs[dir_no], argv[i+1], strlen(argv[i + 1]) + 1);
+				dir_no++;
+				i++;
+			}
+			else if(strncmp("-o", argv[i], 2) == 0) {
+				write_to_output = 1;
+				printf("-o %s\n", argv[i+1]);
 
-			filename_out = malloc((strlen(argv[i + 1]) + 1) * sizeof(char));
-			// foloseste DIE
-			if(filename_out == NULL)
-				exit(1);
-			memcpy(filename_out, argv[i+1], strlen(argv[i + 1] + 1));
-			k2 = 1;
-			i++;
+				fdest = fopen(argv[i+1], "wb");
+				DIE(fdest == NULL, "cannot open output file");
+				i++;
+			}
+			else {
+				exit(12);
+			}
 		}
 		else {
 			// am nume fisier input
-
-
+			printf("filename = %s\n", argv[i]);
+			files_witout_flag++;
+			if (files_witout_flag == 1) {
+				read_from_input = 1;
+				fsrc = fopen(argv[i], "r");
+				DIE(fsrc == NULL, "cannot open input file");
+			}
+			else if (files_witout_flag == 2 && write_to_output == 0) {
+				write_to_output = 1;
+				fdest = fopen(argv[i], "wb");
+				DIE(fdest == NULL, "cannot open output file");
+			}
+			else {
+				exit(-1);
+			}
 		}
 		i++;
 	}
 
 
-	// deschid fisierul de input primit ca argument mai sus
-	fsrc = fopen("ceva.txt", "r");
+	if (read_from_input != 1) {
+		printf("read from stdin\n");
+		fsrc = stdin;
+	}
+
+	if (write_to_output != 1) {
+		printf("write to stdout\n");
+		fdest = stdout;
+	}
 
 
-	// citeste din fisierul de input cu fgets? fread?
+	read_input(fsrc, fdest, dirs, dir_no, ht);
 
 
-
-
-	// va trebui sa extrag argumentele 
-
-	fclose(fsrc);
-	fclose(fdest);
+	if(read_from_input == 1) {
+		fclose(fsrc);
+	}
+	if (write_to_output == 1) {
+		fclose(fdest);
+	}
 	freeTable(ht);
 	return 0; 
 }
@@ -104,3 +130,5 @@ struct hashTable* ht = initTable();
 
 	freeTable(ht);
 */
+
+

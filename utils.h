@@ -2,6 +2,10 @@
 #define _UTILS_H 1
 
 #include <errno.h>
+
+#define MAX_DIRS_NO 20
+#define MAX_LINE_LEN 256
+
 #define DIE(assertion, call_description)				\
 	do {								\
 		if (assertion) {					\
