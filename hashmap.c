@@ -24,6 +24,7 @@ struct hashTable* initTable(){
 }
 
 void printHashTable(struct hashTable* t) {
+    printf("print table\n");
     // printf("table current size=%d\n", t->current_size);
 
     for (int i = 0; i < t->capacity; ++i) {
@@ -31,7 +32,7 @@ void printHashTable(struct hashTable* t) {
             printf("key:%s value:%s\n", t->table[i]->key, (char *)t->table[i]->value);
         }
     }
-    printf("\n");
+    // printf("\n");
   
 }
 
@@ -85,30 +86,29 @@ void addItem(struct hashTable* t, char* key, void* newValue) {
 
 // nu merge :)
 void* getValueByKey(struct hashTable* t, char* key) {
-    printf("da\n");
+    // printf("get value by key: %s\n", key);
     unsigned long hash = hashFunction(key);
     unsigned long index = 0;
     int i = 0;
 
     while(1) {
         index = (hash+i) %  t->capacity;
-        if(t->table[index]) {
+        if(t->table[index] != NULL) {
             // printf("la indexul %ld am cheia %s\n", index, t->table[index]->key);
             if (strncmp(key, t->table[index]->key, strlen(key)) == 0) {
                 return t->table[index]->value;
             } else {
                 if (index < t->capacity) {
                     i++;
-                }
+                } else break;
             }
         } 
-       else {
-            // printf("else\n");
-            if (index < t->capacity) {
-                i++;
-            }
+        else {
+            return NULL;
         }
     }
+    return NULL;
+
 }
 
 

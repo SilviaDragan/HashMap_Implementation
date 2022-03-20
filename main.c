@@ -45,21 +45,21 @@ void str_replace(char *target, const char *needle, const char *replacement)
 
 void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTable* ht) {
 	char line[MAX_LINE_LEN];
-	int line_len = 0;
 	char *buffer = NULL;
 	char *token = NULL;
 	char *token2 = NULL;
 
-	char *line_tmp = NULL;
+	// char *line_tmp = NULL;
 	char *key = NULL;
 	char *val = NULL;
-	int changed_line = 0;
+	// int changed_line = 0;
 	char *result_after_define = NULL;
 	char *copy_input = NULL;
 
 
 	// int i = 0;
-	printf("in functie\n");
+	// printf("in functie\n");
+
 
 	// printf("dirs:%d\n", dir_no);
 
@@ -67,18 +67,24 @@ void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTabl
 	// 	printf("%s\n", dirs[i]);
 	// }
 	result_after_define = calloc(10000, sizeof(char));
+	if(result_after_define == NULL) exit(12);
+	
 	copy_input = calloc(10000, sizeof(char));
+	if(copy_input == NULL) exit(12);
 
 	while(fgets(line, MAX_LINE_LEN, fsrc)) {
-		// printf("strlen line=%d\n", strlen(line));
 		buffer = calloc(strlen(line)+1, sizeof(char));
+		if(buffer == NULL) exit(12);
+
 		memcpy(buffer, line, strlen(line)+1);
-		buffer[strlen(buffer)] = '\0';
-		printf("strlen buffer=%d\n", strlen(buffer));
+		// buffer[strlen(buffer)] = '\0';
+		// printf("strlen buffer=%d\n", strlen(buffer));
+		if(strcmp(line, "\r\n") == 0) {
+			// printf("dadadada\n");
+			continue;
+		}
 		strcat(copy_input, buffer);
 
-
-		// nu merge pentru ca e gandita sa nu fie pe un singur rand :)
 		if (strncmp(buffer, "#define", 7) == 0) {
 			token = strtok(buffer, " ");
 			token = strtok(NULL, " ");
@@ -90,13 +96,13 @@ void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTabl
 
 			memcpy(key, token, strlen(token)+1);
 			key[strlen(key)] = '\0';
-			printf("define key:%s\n", key);
+			// printf("define key:%s\n", key);
 
 			token = strtok(NULL, "\\\n");
-			printf("token:%s\n", token);
+			// printf("token:%s\n", token);
 			memcpy(val, token, strlen(token)+1);
 			val[strlen(val) - 1] = '\0';
-			printf("initial value:%s\n", val);
+			// printf("initial value:%s\n", val);
 
 			// token = strtok(NULL, "\\\n");
 			// printf("token:a%sa\n", token);
@@ -107,56 +113,66 @@ void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTabl
 			// 	printf("token:%s\n", token);
 			// 	strcat(val, token);
 			// }
-			// printf("value:%s\n", val);
+			// printf("key:%s value:%s\n",key, val);
 
-			addItem(ht, key, val);
+			// nested defines
+			char value_copy[strlen(val) +1];
+			int change_value = 0;
+			char *new_val = calloc(strlen(val)+100, sizeof(char));
 
-			// todo: verifica define imbricate
+			strcpy(value_copy, val);
+
+			// printf("copie=%s\n", value_copy);
+			token = strtok(value_copy, " ");
+			
+			while(token != NULL){
+				if(getValueByKey(ht, token) != NULL) {
+					// printf("da am gasit\n");
+					strcat(new_val, getValueByKey(ht, token));
+					strcat(new_val, " ");
+					change_value = 1;
+				}
+				else {
+					strcat(new_val, token);
+					strcat(new_val, " ");
+				}
+				token = strtok(NULL, " ");
+			}
+			new_val[strlen(new_val)-1] = '\0';
+
+
+			// printf("new val = %s\n", new_val);
+			(change_value == 1) ? addItem(ht, key, new_val) : addItem(ht, key, val);;
+
+			free(key);
+			free(val);
 		}
+		free(buffer);
 	}
-	free(buffer);
 
-	printHashTable(ht);
+
+	// printHashTable(ht);
 
 	// replace keys in map with vals, write to output without #define rows
 	fseek(fsrc, 0, SEEK_SET);
-	// while(fgets(line, MAX_LINE_LEN, fsrc)) {
-	// 	buffer = calloc(strlen(line)+1, sizeof(char));
-	// 	memcpy(buffer, line, strlen(line)+1);
-	// 	buffer[strlen(line)] = '\0';
-	// 	if (strncmp(buffer, "#define", 7) != 0) {
-	// 		// sa fie diferit si de \n sau trailing whitespace
-	// 		strcat(result_after_define, buffer);
-	// 	}
-	// }
-
-	// se face tokenizare acum dupa delimitatori
-	// copy_input[strlen(copy_input)] = '\n';
-	// copy_input[strlen(copy_input)+1] = '\0';
-	printf("%s\n", copy_input);
-
 	token2 = strtok(copy_input, "\n");
 	while (token2 != NULL) {
-		printf("tok=%s\n", token2);
-		// line_tmp = calloc(strlen(token)+1, sizeof(char));
-		// memcpy(line_tmp, token2, strlen(token)+1);
-		// line_tmp[strlen(line_tmp)] = '\0';
+		// printf("tok=%s\n", token2);
 		if (strncmp(token2, "#define", 7)) {
 			strcat(result_after_define, token2);
-			if(result_after_define[0] == '\n') {
-				printf("DAAAAAAAAA");
-			}
-			result_after_define[strlen(result_after_define)] = '\0';
+			result_after_define[strlen(result_after_define)] = '\n';
 		}
 		token2 = strtok(NULL, "\n");
 	}
 
 	for (int k = 0; k < ht->capacity; k++) {
 		if (ht->table[k] != NULL) {
-			str_replace(result_after_define, ht->table[k]->key, ht->table[k]->value);
+			str_replace(result_after_define, ht->table[k]->key,(char *)ht->table[k]->value);
 		}
 	}
 	fprintf(fdest, "%s", result_after_define);
+	free(result_after_define);
+	free(copy_input);
 }
 
 void addArgInMap(char *arg, struct hashTable* ht) {
@@ -169,12 +185,11 @@ void addArgInMap(char *arg, struct hashTable* ht) {
 
 	// printf("key: %s val: %s\n", token, val);
 	addItem(ht, key, val);
-	printHashTable(ht);
+	// printHashTable(ht);
 }
 
 int main(int argc, char **argv) {
 	FILE *fsrc = NULL, *fdest = NULL;
-	// char *fin = NULL, *fout = NULL;
 	int i = 1, dir_no = 0;
 	int write_to_output = 0, read_from_input = 0, files_witout_flag = 0;
 	struct hashTable* ht = initTable();
@@ -187,7 +202,7 @@ int main(int argc, char **argv) {
 	while (i < argc) {
 		if(strncmp("-", argv[i], 1) == 0) {
 			if(strncmp("-D", argv[i], 2) == 0) {
-				printf("caz d\n");
+				// printf("caz d\n");
 				addArgInMap(argv[i+1], ht);
 				i++;
 			}
@@ -203,7 +218,7 @@ int main(int argc, char **argv) {
 			}
 			else if(strncmp("-o", argv[i], 2) == 0) {
 				write_to_output = 1;
-				printf("-o %s\n", argv[i+1]);
+				// printf("-o %s\n", argv[i+1]);
 
 				fdest = fopen(argv[i+1], "wb");
 				DIE(fdest == NULL, "cannot open output file");
@@ -215,7 +230,7 @@ int main(int argc, char **argv) {
 		}
 		else {
 			// am nume fisier input
-			printf("filename = %s\n", argv[i]);
+			// printf("filename = %s\n", argv[i]);
 			files_witout_flag++;
 			if (files_witout_flag == 1) {
 				read_from_input = 1;
@@ -236,12 +251,12 @@ int main(int argc, char **argv) {
 
 
 	if (read_from_input != 1) {
-		printf("read from stdin\n");
+		// printf("read from stdin\n");
 		fsrc = stdin;
 	}
 
 	if (write_to_output != 1) {
-		printf("write to stdout\n");
+		// printf("write to stdout\n");
 		fdest = stdout;
 	}
 
@@ -255,6 +270,12 @@ int main(int argc, char **argv) {
 	if (write_to_output == 1) {
 		fclose(fdest);
 	}
+
+	for(i = 0; i < dir_no; i++) {
+		free(dirs[i]);
+	}
+	free(dirs);
+
 	freeTable(ht);
 	return 0; 
 }
