@@ -5,6 +5,9 @@
 
 #define MAX_DIRS_NO 20
 #define MAX_LINE_LEN 256
+// #define DELIMS "\t \n[]{}<>=+-*/%!&|^.,:;()\\"
+#define DELIMS "\t \n\\"
+
 
 #define DIE(assertion, call_description)				\
 	do {								\
