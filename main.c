@@ -55,13 +55,13 @@ void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTabl
 	char *token2 = NULL;
 	char *new_val = NULL;
 	int length = 0;
-
+	int multiple_lines_define = 0;
 	char *key = NULL;
 	char *val = NULL;
-	// char *result_after_define = NULL;
 	char *copy_input = NULL;
-	// int if_flag = 0;
-	// int else_flag = 0;
+	int if_flag = 0;
+	int else_flag = 0;
+	char *test = NULL;
 
 	// printf("dirs:%d\n", dir_no);
 
@@ -99,7 +99,7 @@ void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTabl
 			key[strlen(key)] = '\0';
 			// printf("define key:%s\n", key);
 
-			token = strtok(NULL, "\\\n");
+			token = strtok(NULL, "\n");
 
 			length = strlen(token) + 1;
 			val = calloc(length, sizeof(char));
@@ -108,20 +108,17 @@ void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTabl
 			length = strlen(token);
 			memcpy(val, token, length);
 			val[strlen(val) - 1] = '\0';
-			// printf("initial value:%s\n", val);
 
-			// token = strtok(NULL, "\\\n");
-			// printf("token:a%sa\n", token);
+			// multiple-lines define
+			// printf("val=%s\n", val);
 
-			// nu merge asta pt testul 12 fmm
-			// while(token != NULL) {
-			// 	token = strtok(NULL, DELIMS);
-			// 	printf("token:%s\n", token);
-			// 	strcat(val, token);
+			// if(strchr(val, 92)) {
+			// 	// printf("dadadadadadadadada\n");
+			// 	continue;
 			// }
-			// printf("key:%s value:%s\n",key, val);
+			// multiple-lines define
 
-			// nested defines
+
 			char value_copy[strlen(val) + 100];
 			int change_value = 0;
 			length = strlen(val) + 100;
@@ -134,7 +131,6 @@ void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTabl
 			
 			while(token != NULL){
 				if(getValueByKey(ht, token) != NULL) {
-					// printf("da am gasit\n");
 					strcat(new_val, getValueByKey(ht, token));
 					strcat(new_val, " ");
 					change_value = 1;
@@ -157,65 +153,87 @@ void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTabl
 		}
 		
 		else if (strncmp(buffer, "#if", 3) == 0) {
-			free(buffer);
-			// token = strtok(buffer, " ");
-			// char *test =  NULL;
-			// // cauta tokenul in mapa
-			// if(getValueByKey(ht, token) != NULL) {
-			// 	test = getValueByKey(ht, token);
-			// 	printf("token = %s, value = %s\n", token, value);
+			token = strtok(buffer, " ");
+			token = strtok(NULL, "\r\n");
 
+			// printf("token:%s\n", token);
+
+			length = strlen(token);
+			// printHashTable(ht);
+			if(getValueByKey(ht, token) != NULL) {
+				test = getValueByKey(ht, token);
+				// printf("token = %s, value = %s\n", token, val);
+			}
 			// } else {
-			// 	test = token;
+			// 	printf("else\n");
+			// 	strcpy(test, token);
 			// }
-			// // verifica valoarea de adevar a lui atoi(test)
-			// if(atoi(test)) {
-			// 	// print next lines
-			// }
-			// else {
-			// 	// don't print print lines in if, print the ones in else
-			// }
-			continue;
+			if(test) {
+				// printf("test:%s atoi:%d\n", test, atoi(test));
+				if(atoi(test)){
+					if_flag = 0;
+				}			
+				else if_flag = 1;
+			} else {
+				if(atoi(token)){
+					// printf("da\n");
+					if_flag = 0;
+				}			
+				else if_flag = 1;
+			}
 
+			
+			free(buffer);
+			continue;
 		}
 		else if (strncmp(buffer, "#endif", 6) == 0) {
+			if_flag = 0;
+			else_flag = 0;
 			free(buffer);
 			continue;
-			
 		}
 		else if (strncmp(buffer, "#elif", 5) == 0) {
+			if (if_flag == 1) {
+				token = strtok(buffer, " ");
+				token = strtok(NULL, "\r\n");
+				length = strlen(token) + 1;
+				if(getValueByKey(ht, token) != NULL) {
+					test = getValueByKey(ht, token);
+					// printf("token = %s, value = %s\n", token, val);
+				} else {
+					strcpy(test, token);
+				}
+				if(atoi(test)) if_flag = 0;
+				else if_flag = 1;
+			}
 			free(buffer);
 			continue;
 		}
 		else if (strncmp(buffer, "#else", 5) == 0) {
+			if (if_flag == 1){
+				else_flag = 0;
+				if_flag = 0;
+			} 
+			else else_flag = 1;
 			free(buffer);
 			continue;
 		}
 		else if (strncmp(buffer, "#undef", 6) == 0) {
-			// printf("%s\n" ,buffer);
 			token = strtok(buffer, " ");
 			token = strtok(NULL, "\r\n");
-
-			// printf("token:%s", token);
-
-			// length = strlen(token);
-			// key = calloc(length, sizeof(char));
-			// if(key == NULL) exit(12);
-
-			// memcpy(key, token, length);
-			// key[strlen(key)] = '\0';
-			// printf("key:%s len = %d\n", token, strlen(token));
-			// printHashTable(ht);
 			if (getValueByKey(ht, token) != NULL) {
-				// printf("yes\n");
 				deleteItem(ht, token);
-				// printf("am iesit\n");
-
 			}
 			free(buffer);
 			continue;
 		}
 		else {
+			// printf("%s\n", buffer);
+			if (if_flag == 1 || else_flag == 1) {
+				free(buffer);
+				continue;
+			}
+			
 			for (int k = 0; k < ht->capacity; k++) {
 				if (ht->table[k] != NULL) {
 					if(strstr(buffer, ht->table[k]->key)!= NULL) {
@@ -231,27 +249,6 @@ void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTabl
 		}
 		free(buffer);
 	}
-
-
-	// printHashTable(ht);
-
-	// fseek(fsrc, 0, SEEK_SET);
-	// token2 = strtok(copy_input, "\n");
-	// while (token2 != NULL) {
-	// 	// printf("tok=%s\n", token2);
-	// 	if (strncmp(token2, "#define", 7)) {
-	// 		strcat(result_after_define, token2);
-	// 		result_after_define[strlen(result_after_define)] = '\n';
-	// 	}
-	// 	token2 = strtok(NULL, "\n");
-	// }
-
-	// for (int k = 0; k < ht->capacity; k++) {
-	// 	if (ht->table[k] != NULL) {
-	// 		str_replace(result_after_define, ht->table[k]->key,(char *)ht->table[k]->value);
-	// 	}
-	// }
-
 	fprintf(fdest, "%s", copy_input);
 	free(copy_input);
 }
