@@ -52,6 +52,8 @@ void addItem(struct hashTable* t, char* key, void* newValue) {
     unsigned long hash = hashFunction(key);
     unsigned long index = 0;
     int i = 0;
+    int len_key = 0;
+    int len_value = 0;
 
     // printf("add %s %s\n", key, (char *)newValue);
     while(1) {
@@ -61,16 +63,17 @@ void addItem(struct hashTable* t, char* key, void* newValue) {
             // printf("nu exista element la indexul %ld\n", index);
             // insert value
             t->table[index] = (struct hashData *) calloc(1, sizeof(struct hashData));
-            t->table[index]->key = calloc(strlen(key), sizeof(char));
-            t->table[index]->value = calloc(strlen(newValue), sizeof(char));
-            memcpy(t->table[index]->key, key, strlen(key));
-            memcpy(t->table[index]->value, newValue, strlen(newValue));
+            len_key = strlen(key) + 1;
+            t->table[index]->key = calloc(len_key, sizeof(char));
+            len_value = strlen(newValue) + 1;
+            t->table[index]->value = calloc(len_value, sizeof(char));
+            memcpy(t->table[index]->key, key, len_key - 1);
+            memcpy(t->table[index]->value, newValue, len_value - 1);
             // hd->key = key;
             // hd->value = newValue;
             break;
         } 
         else {
-            // printf("else\n");
             if (index < t->capacity) {
                 i++;
             }
@@ -84,7 +87,6 @@ void addItem(struct hashTable* t, char* key, void* newValue) {
 }
 
 
-// nu merge :)
 void* getValueByKey(struct hashTable* t, char* key) {
     // printf("get value by key: %s\n", key);
     unsigned long hash = hashFunction(key);
