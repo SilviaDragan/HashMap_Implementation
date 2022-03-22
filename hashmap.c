@@ -81,8 +81,8 @@ void addItem(struct hashTable* t, char* key, void* newValue) {
     }
     t->current_size++;
     if (t->current_size >= t->capacity * 3 / 4 ) {
-        // resize 
-        printf("need to resize table\n");    
+        t->table = realloc(t->table, 2 * t->capacity);
+        t->capacity *= 2; 
     }
 }
 

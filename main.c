@@ -10,37 +10,42 @@
 
 // delimitatoare: \t []{}<>=+-*/%!&|^.,:;()\.
 
-void str_replace(char *target, const char *needle, const char *replacement)
-{
-    char buffer[1024] = { 0 };
-    char *insert_point = &buffer[0];
-    const char *tmp = target;
-    size_t needle_len = strlen(needle);
-    size_t repl_len = strlen(replacement);
+void str_replace(char *line, char *original, char *replacement) {
+	char *buffer = NULL;	
+	char *insert = NULL;
+    char *tmp = line;
+    int line_lenght = 0;
+	int key_length = 0;
+	int val_length = 0;
+	char *find = NULL;
+	// printf("inceput\n");
+	// printf("linie:%s\n", line);
+	// printf("original:%s\n", original);
+	// printf("replacement:%s\n", replacement);
+	val_length = strlen(replacement);
+	line_lenght = strlen(line) + val_length;
+	buffer = calloc(line_lenght, sizeof(char));
+	if(buffer == NULL) exit(12);
+
+	key_length = strlen(original);
+	insert = &buffer[0];
 
     while (1) {
-        const char *p = strstr(tmp, needle);
-
-        // walked past last occurrence of needle; copy remaining part
-        if (p == NULL) {
-            strcpy(insert_point, tmp);
+		// printf("in while\n");
+        find = strstr(tmp, original);
+        if (find == NULL) {
+            strncpy(insert, tmp, strlen(tmp));
             break;
         }
+        memcpy(insert, tmp, find - tmp);
+        insert += find - tmp;
 
-        // copy part before needle
-        memcpy(insert_point, tmp, p - tmp);
-        insert_point += p - tmp;
-
-        // copy replacement string
-        memcpy(insert_point, replacement, repl_len);
-        insert_point += repl_len;
-
-        // adjust pointers, move on
-        tmp = p + needle_len;
+        memcpy(insert, replacement, val_length);
+        insert += val_length;
+        tmp = find + key_length;
     }
-
-    // write altered string back to target
-    strcpy(target, buffer);
+    strcpy(line, buffer);
+	free(buffer);
 }
 
 void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTable* ht) {
@@ -53,7 +58,7 @@ void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTabl
 
 	char *key = NULL;
 	char *val = NULL;
-	char *result_after_define = NULL;
+	// char *result_after_define = NULL;
 	char *copy_input = NULL;
 	// int if_flag = 0;
 	// int else_flag = 0;
@@ -63,8 +68,8 @@ void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTabl
 	// for (i = 0; i < dir_no; i++) {
 	// 	printf("%s\n", dirs[i]);
 	// }
-	result_after_define = calloc(10000, sizeof(char));
-	if(result_after_define == NULL) exit(12);
+	// result_after_define = calloc(10000, sizeof(char));
+	// if(result_after_define == NULL) exit(12);
 	
 	copy_input = calloc(10000, sizeof(char));
 	if(copy_input == NULL) exit(12);
@@ -178,18 +183,50 @@ void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTabl
 			continue;
 			
 		}
-
 		else if (strncmp(buffer, "#elif", 5) == 0) {
 			free(buffer);
 			continue;
 		}
-
 		else if (strncmp(buffer, "#else", 5) == 0) {
 			free(buffer);
 			continue;
 		}
+		else if (strncmp(buffer, "#undef", 6) == 0) {
+			// printf("%s\n" ,buffer);
+			token = strtok(buffer, " ");
+			token = strtok(NULL, "\r\n");
 
+			// printf("token:%s", token);
+
+			// length = strlen(token);
+			// key = calloc(length, sizeof(char));
+			// if(key == NULL) exit(12);
+
+			// memcpy(key, token, length);
+			// key[strlen(key)] = '\0';
+			// printf("key:%s len = %d\n", token, strlen(token));
+			// printHashTable(ht);
+			if (getValueByKey(ht, token) != NULL) {
+				// printf("yes\n");
+				deleteItem(ht, token);
+				// printf("am iesit\n");
+
+			}
+			free(buffer);
+			continue;
+		}
 		else {
+			for (int k = 0; k < ht->capacity; k++) {
+				if (ht->table[k] != NULL) {
+					if(strstr(buffer, ht->table[k]->key)!= NULL) {
+						if (strlen(ht->table[k]->key) < strlen((char *)ht->table[k]->value)) {
+							length = strlen(buffer) - strlen(ht->table[k]->key) + 3 * strlen((char *)ht->table[k]->value);
+							buffer = (char *) realloc(buffer, length);
+						}
+						str_replace(buffer, ht->table[k]->key, (char *)ht->table[k]->value);
+					}
+				}
+			}
 			strcat(copy_input, buffer);
 		}
 		free(buffer);
@@ -198,26 +235,24 @@ void read_input(FILE *fsrc, FILE *fdest,char **dirs, int dir_no, struct hashTabl
 
 	// printHashTable(ht);
 
-	fseek(fsrc, 0, SEEK_SET);
-	token2 = strtok(copy_input, "\n");
-	while (token2 != NULL) {
-		// printf("tok=%s\n", token2);
-		if (strncmp(token2, "#define", 7)) {
-			strcat(result_after_define, token2);
-			result_after_define[strlen(result_after_define)] = '\n';
-		}
-		token2 = strtok(NULL, "\n");
-	}
+	// fseek(fsrc, 0, SEEK_SET);
+	// token2 = strtok(copy_input, "\n");
+	// while (token2 != NULL) {
+	// 	// printf("tok=%s\n", token2);
+	// 	if (strncmp(token2, "#define", 7)) {
+	// 		strcat(result_after_define, token2);
+	// 		result_after_define[strlen(result_after_define)] = '\n';
+	// 	}
+	// 	token2 = strtok(NULL, "\n");
+	// }
 
-	for (int k = 0; k < ht->capacity; k++) {
-		if (ht->table[k] != NULL) {
-			// check for undef :)
-			str_replace(result_after_define, ht->table[k]->key,(char *)ht->table[k]->value);
-		}
-	}
+	// for (int k = 0; k < ht->capacity; k++) {
+	// 	if (ht->table[k] != NULL) {
+	// 		str_replace(result_after_define, ht->table[k]->key,(char *)ht->table[k]->value);
+	// 	}
+	// }
 
-	fprintf(fdest, "%s", result_after_define);
-	free(result_after_define);
+	fprintf(fdest, "%s", copy_input);
 	free(copy_input);
 }
 
